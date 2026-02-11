@@ -1,10 +1,11 @@
 # Credits
-Priyanshu Rao
-Mohit Raj S
-Mohit Bhagoria
+- Priyanshu Rao (https://github.com/PriyanshuRao-code)
+- Mohit Raj S (https://github.com/MohitRajSS)
+- Mohit Bhagoriya (https://github.com/MohitBhagoriya)
 
 # Dataset
 We have taken the data from https://nihcc.app.box.com/v/ChestXray-NIHCC which is of Chest Xray
+
 We have shown just a single image for demostrating purpose in DVMSR folder and the statistics are there in .json files
 
 # Script Usage Guide
@@ -14,6 +15,7 @@ We have shown just a single image for demostrating purpose in DVMSR folder and t
 # Lite-SRGAN
 
 To run Lite-SRGAN, simply open and execute **SRGAN.ipynb** in Google Colab.
+
 All required files are already linked through the notebook, as they are fetched directly from the GitHub repository.
 We have built upon GitHub repository https://github.com/hosamsherif/LiteSRGAN-and-LiteUNet.git
 
@@ -98,3 +100,4 @@ Outputs:
 checkpoints/best_model.pth
 
 ```
+
