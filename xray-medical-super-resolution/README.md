@@ -1,3 +1,12 @@
+# Credits
+Priyanshu Rao
+Mohit Raj S
+Mohit Bhagoria
+
+# Dataset
+We have taken the data from https://nihcc.app.box.com/v/ChestXray-NIHCC which is of Chest Xray
+We have shown just a single image for demostrating purpose in DVMSR folder and the statistics are there in .json files
+
 # Script Usage Guide
 
 ---
@@ -6,13 +15,14 @@
 
 To run Lite-SRGAN, simply open and execute **SRGAN.ipynb** in Google Colab.
 All required files are already linked through the notebook, as they are fetched directly from the GitHub repository.
-The files given here are just a copy of those in GitHub which were changed from our original GitHub folder 
-https://github.com/hosamsherif/LiteSRGAN-and-LiteUNet.git 
+We have built upon GitHub repository https://github.com/hosamsherif/LiteSRGAN-and-LiteUNet.git
+
+The files needed for setting up the Google Colab are 
 
 ---
 
 # DVMSR
-
+We have built upon https://github.com/nathan66666/DVMSR.git
 ## 1. Generate LR–HR Pairs
 ```bash
 python generate_LR_images.py --hr_dir "original_images"
@@ -86,4 +96,5 @@ This:
 Outputs:
 ```
 checkpoints/best_model.pth
+
 ```
