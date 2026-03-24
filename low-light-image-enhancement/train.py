@@ -78,8 +78,8 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, epochs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_dir", type=str, default="data/train", help="Path to training folder")
-    parser.add_argument("--val_dir", type=str, default="data/valid", help="Path to validation folder")
+    parser.add_argument("--train_dir", type=str, default="lol_dataset/our485", help="Path to training folder")
+    parser.add_argument("--val_dir", type=str, default="lol_dataset/eval15", help="Path to validation folder")
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-4)
