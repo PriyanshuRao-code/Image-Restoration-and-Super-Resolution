@@ -48,7 +48,8 @@ def generate_images(model_checkpoint_path, lr_image_path, hr_image_path, save_di
 if __name__ == "__main__":
     lr_image_path = "lol_dataset/eval15/low/1.png"
     hr_image_path = "lol_dataset/eval15/high/1.png"
-    model_checkpoint_path = "model_zoo/team07_DVMSR.pth"  # For student model 
+    # model_checkpoint_path = "model_zoo/team07_DVMSR.pth"  # For student model 
+    model_checkpoint_path = "checkpoints/best_model.pth"  # For student model 
     # model_checkpoint_path = "checkpoints/best_model.pth"  # For full model
     # model_checkpoint_path = "checkpoints_distilled/student_best.pth"  # For student model 
     # save_dir = "generated_images" # For full model
