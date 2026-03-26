@@ -6,14 +6,27 @@ import argparse
 from sklearn.model_selection import train_test_split
 
 def generate_LR_images(hr_dir, output_dir, scale=4, val_split=0.2):
-    hr_images = [os.path.join(hr_dir, img) for img in os.listdir(hr_dir)
-                 if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    # hr_images = [os.path.join(hr_dir, img) for img in os.listdir(hr_dir)
+    #              if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
     
-    if len(hr_images) == 0:
-        print("No images found in:", hr_dir)
+    # if len(hr_images) == 0:
+    #     print("No images found in:", hr_dir)
+    #     return
+    
+    # train_imgs, val_imgs = train_test_split(hr_images, test_size=val_split, random_state=42)
+    train_dir = os.path.join(hr_dir, "train")
+    valid_dir = os.path.join(hr_dir, "valid")
+
+    train_imgs = [os.path.join(train_dir, img) for img in os.listdir(train_dir)
+                  if img.lower().endswith(('.png', '.jpg', '.jpeg'))]  #CHANGE
+    
+    val_imgs = [os.path.join(valid_dir, img) for img in os.listdir(valid_dir)
+                if img.lower().endswith(('.png', '.jpg', '.jpeg'))]  #CHANGE
+
+    if len(train_imgs) == 0 or len(val_imgs) == 0:  #CHANGE
+        print("No images found in one of the directories")  #CHANGE
         return
-    
-    train_imgs, val_imgs = train_test_split(hr_images, test_size=val_split, random_state=42)
+
 
     paths = [
         os.path.join(output_dir, 'train/HR'),

@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # model_checkpoint_path = "checkpoints/best_model.pth"  # For full model
     # model_checkpoint_path = "checkpoints_distilled/student_best.pth"  # For student model 
     # save_dir = "generated_images" # For full model
-    save_dir = "generated_images_lol" # For student model
+    save_dir = "generated_images_lol/2" # For student model
     
     lr_image_pth, hr_image_pth, sr_image_pth = generate_images(model_checkpoint_path, lr_image_path, hr_image_path, save_dir)
     print(f"Generated Images: \nLR: {lr_image_pth} \nHR: {hr_image_pth} \nSR: {sr_image_pth}")

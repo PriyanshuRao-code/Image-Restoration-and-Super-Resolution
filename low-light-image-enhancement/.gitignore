@@ -1,7 +1,7 @@
-DVMSR/checkpoints
-DVMSR/checkpoints_distilled
-DVMSR/model_zoo
 lol_dataset
 installed
 models/__pycache__/
 utils/__pycache__/
+data
+Dataset
+checkpoints
