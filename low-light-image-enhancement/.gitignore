@@ -9,3 +9,6 @@ noisy_images
 output_results
 results
 *.csv
+experiments/
+LOL*
+inference_models/eval

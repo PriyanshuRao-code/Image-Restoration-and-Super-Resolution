@@ -178,13 +178,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_dir", type=str, default="data/train")
     parser.add_argument("--val_dir", type=str, default="data/valid")
-    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--unfreeze_layers", type=int, default=10)
+    parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--resume", type=int, default=1)
     parser.add_argument("--show_summary", type=int, default=1)
-
     parser.add_argument("--checkpoint_type", type=str, default="full",
                         choices=["simple", "full"])  # CHANGE
 

@@ -40,7 +40,7 @@ def get_model(model_type):
     Central place for model creation
     """
 
-    if model_type in ["baseline", "gamma", "perceptual"]:
+    if model_type in ["baseline", "gamma", "perceptual", "gamma_perceptual"]:
         return FullModel(use_illum=False)
 
     elif model_type in ["illum", "full"]:

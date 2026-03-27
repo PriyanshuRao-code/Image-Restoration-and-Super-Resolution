@@ -168,12 +168,12 @@ def train_single(args, model_type):
 
             lr, hr = lr.to(device), hr.to(device)
 
-            if model_type == "gamma":
+            if model_type == "gamma" or model_type == "gamma_perceptual":
                 lr = gamma_correction(lr)
 
             sr = model(lr)
 
-            if model_type in ["perceptual", "full"]:
+            if model_type in ["perceptual", "full", "gamma_perceptual"]:
                 loss = criterion(sr, hr) + 0.01 * perceptual_loss(sr, hr)
             else:
                 loss = criterion(sr, hr)
@@ -204,12 +204,12 @@ def train_single(args, model_type):
             for lr, hr in val_loader:
                 lr, hr = lr.to(device), hr.to(device)
 
-                if model_type == "gamma":
+                if model_type == "gamma" or model_type == "gamma_perceptual":
                     lr = gamma_correction(lr)
 
                 sr = model(lr)
 
-                if model_type in ["perceptual", "full"]:
+                if model_type in ["perceptual", "full", "gamma_perceptual"]:
                     loss = criterion(sr, hr) + 0.01 * perceptual_loss(sr, hr)
                 else:
                     loss = criterion(sr, hr)
@@ -226,7 +226,7 @@ def train_single(args, model_type):
         print(f"{model_type} Epoch {epoch+1} | PSNR: {val_psnr:.2f}")
 
         # ===== SAVE =====
-        torch.save(model.state_dict(), f"{ckpt_dir}/initial_format_epoch_{epoch+1}.pth")
+        torch.save(model.state_dict(), f"{ckpt_dir}/initial_format_epoch.pth")
 
         torch.save({
             "model": model.state_dict(),
@@ -271,12 +271,12 @@ def main():
         "--model_type",
         type=str,
         default="baseline",
-        choices=["baseline", "gamma", "illum", "perceptual", "full", "all"]
+        choices=["baseline", "gamma", "illum", "perceptual", "full", "gamma_perceptual", "all"]
     )
 
     args = parser.parse_args()
 
-    MODEL_LIST = ["baseline", "gamma", "illum", "perceptual", "full"]
+    MODEL_LIST = ["baseline", "gamma", "illum", "perceptual", "full", "gamma_perceptual"]
 
     if args.model_type == "all":
         for m in MODEL_LIST:
