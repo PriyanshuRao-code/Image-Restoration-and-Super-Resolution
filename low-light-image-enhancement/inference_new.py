@@ -1,174 +1,121 @@
 import os
-import csv
 import torch
 import numpy as np
+import csv
 from PIL import Image
-from torchvision import transforms, models
+from torchvision import transforms
 from tqdm import tqdm
 import cv2
 
-from models.team07_DVMSR import DVMSR
-import utils.utils_image as util
+from models.wrappers import get_model
 from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
 
 
-# ================= MODULES =================
-import torch.nn as nn
-
-class IlluminationModule(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(3, 32, 3, 1, 1),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, 3, 1, 1),
-            nn.ReLU(),
-            nn.Conv2d(32, 3, 3, 1, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        illum = self.net(x)
-        return x * illum
+# ================= GAMMA =================
+def gamma_correction(x):
+    return torch.clamp(x, 0, 1) ** (1/2.2)
 
 
-class TextureBlock(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(3, 64, 3, 1, 1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, 1, 1),
-            nn.ReLU(),
-            nn.Conv2d(64, 3, 3, 1, 1)
-        )
+# ================= LOAD =================
+def load_model(model_type, ckpt_path, device):
 
-    def forward(self, x):
-        return x + self.net(x)
+    model = get_model(model_type).to(device)
 
+    state = torch.load(ckpt_path, map_location=device)
 
-class FullModel(nn.Module):
-    def __init__(self, dvmsr):
-        super().__init__()
-        self.illum = IlluminationModule()
-        self.dvmsr = dvmsr
-        self.texture = TextureBlock()
+    if isinstance(state, dict) and "model" in state:
+        model.load_state_dict(state["model"])
+    else:
+        model.load_state_dict(state)
 
-    def forward(self, x):
-        x = self.illum(x)
-        x = self.dvmsr(x)
-        x = self.texture(x)
-        return x
-
-
-# ================= LOAD MODEL =================
-def load_model(checkpoint):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    dvmsr = DVMSR().to(device)
-    model = FullModel(dvmsr).to(device)
-
-    model.load_state_dict(torch.load(checkpoint, map_location=device))
     model.eval()
+    return model
 
-    return model, device
 
-
-# ================= UTILS =================
+# ================= MATCH SIZE =================
 def match_size(img, ref):
     if img.shape != ref.shape:
-        img = cv2.resize(img, (ref.shape[1], ref.shape[0]), interpolation=cv2.INTER_CUBIC)
+        img = cv2.resize(img, (ref.shape[1], ref.shape[0]))
     return img
 
 
-# ================= INFERENCE =================
-def run_inference(lr_dir, hr_dir, checkpoint, output_dir, csv_path):
-    model, device = load_model(checkpoint)
+# ================= MAIN =================
+def evaluate(models_list, lr_dir, hr_dir, output_root):
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     transform = transforms.ToTensor()
 
-    # Create folders
-    lr_out = os.path.join(output_dir, "LR")
-    sr_out = os.path.join(output_dir, "SR")
-    hr_out = os.path.join(output_dir, "HR")
+    for m in models_list:
 
-    os.makedirs(lr_out, exist_ok=True)
-    os.makedirs(sr_out, exist_ok=True)
-    os.makedirs(hr_out, exist_ok=True)
+        name = m["name"]
+        model_type = m["type"]
+        ckpt = m["ckpt"]
+        use_gamma = m.get("gamma", False)
 
-    psnr_list = []
-    ssim_list = []
+        print(f"\n🔷 Evaluating {name}")
 
-    rows = []
+        model = load_model(model_type, ckpt, device)
 
-    for name in tqdm(sorted(os.listdir(lr_dir))):
-        lr_path = os.path.join(lr_dir, name)
-        hr_path = os.path.join(hr_dir, name)
+        base = f"{output_root}/{name}"
+        os.makedirs(base, exist_ok=True)
 
-        if not os.path.exists(hr_path):
-            continue
+        lr_out = f"{base}/LR"
+        hr_out = f"{base}/HR"
+        sr_out = f"{base}/SR"
 
-        lr_img = Image.open(lr_path).convert("RGB")
-        hr_img = Image.open(hr_path).convert("RGB")
+        os.makedirs(lr_out, exist_ok=True)
+        os.makedirs(hr_out, exist_ok=True)
+        os.makedirs(sr_out, exist_ok=True)
 
-        lr_tensor = transform(lr_img).unsqueeze(0).to(device)
-        hr_tensor = transform(hr_img).unsqueeze(0).to(device)
+        rows = []
+        psnr_list = []
+        ssim_list = []
 
-        # Inference
-        with torch.no_grad():
-            sr_tensor = model(lr_tensor)
+        for img_name in tqdm(sorted(os.listdir(lr_dir))):
 
-        # Convert
-        sr_img = util.tensor2uint(sr_tensor.squeeze(0).cpu(), data_range=1)
-        hr_img = util.tensor2uint(hr_tensor.squeeze(0).cpu(), data_range=1)
-        lr_img = util.tensor2uint(lr_tensor.squeeze(0).cpu(), data_range=1)
+            lr = Image.open(f"{lr_dir}/{img_name}").convert("RGB")
+            hr = Image.open(f"{hr_dir}/{img_name}").convert("RGB")
 
-        # Match size
-        sr_img = match_size(sr_img, hr_img)
+            lr_tensor = transform(lr).unsqueeze(0).to(device)
+            hr_tensor = transform(hr).unsqueeze(0).to(device)
 
-        # Metrics
-        psnr_val = psnr(hr_img, sr_img, data_range=255)
-        ssim_val = ssim(hr_img, sr_img, channel_axis=2, data_range=255)
+            if use_gamma:
+                lr_tensor = gamma_correction(lr_tensor)
 
-        psnr_list.append(psnr_val)
-        ssim_list.append(ssim_val)
+            with torch.no_grad():
+                sr_tensor = model(lr_tensor)
 
-        rows.append([name, psnr_val, ssim_val])
+            sr = sr_tensor.squeeze().cpu().numpy().transpose(1,2,0)
+            hr_np = hr_tensor.squeeze().cpu().numpy().transpose(1,2,0)
+            lr_np = lr_tensor.squeeze().cpu().numpy().transpose(1,2,0)
 
-        # Save images
-        Image.fromarray(lr_img).save(os.path.join(lr_out, name))
-        Image.fromarray(sr_img).save(os.path.join(sr_out, name))
-        Image.fromarray(hr_img).save(os.path.join(hr_out, name))
+            sr = (sr*255).clip(0,255).astype(np.uint8)
+            hr_np = (hr_np*255).clip(0,255).astype(np.uint8)
+            lr_np = (lr_np*255).clip(0,255).astype(np.uint8)
 
-    # Averages
-    avg_psnr = np.mean(psnr_list)
-    avg_ssim = np.mean(ssim_list)
+            sr = match_size(sr, hr_np)
 
-    # Save CSV
-    with open(csv_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["image_name", "psnr", "ssim"])
+            p = psnr(hr_np, sr, data_range=255)
+            s = ssim(hr_np, sr, channel_axis=2, data_range=255)
 
-        for row in rows:
-            writer.writerow(row)
+            psnr_list.append(p)
+            ssim_list.append(s)
 
-        writer.writerow([])
-        writer.writerow(["AVERAGE", avg_psnr, avg_ssim])
+            rows.append([img_name, p, s])
 
-    print("\n📊 FINAL RESULTS:")
-    print(f"PSNR: {avg_psnr:.4f}")
-    print(f"SSIM: {avg_ssim:.4f}")
+            Image.fromarray(lr_np).save(f"{lr_out}/{img_name}")
+            Image.fromarray(sr).save(f"{sr_out}/{img_name}")
+            Image.fromarray(hr_np).save(f"{hr_out}/{img_name}")
 
+        avg_psnr = np.mean(psnr_list)
+        avg_ssim = np.mean(ssim_list)
 
-# ================= MAIN =================
-if __name__ == "__main__":
-    lr_dir = "data/valid/LR"
-    hr_dir = "data/valid/HR"
+        with open(f"{base}/metrics.csv","w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["image","psnr","ssim"])
+            writer.writerows(rows)
+            writer.writerow([])
+            writer.writerow(["AVERAGE", avg_psnr, avg_ssim])
 
-    checkpoint = "checkpoints_new/latest_model.pth"
-
-    output_dir = "results"
-    csv_path = "results/metrics.csv"
-
-    run_inference(lr_dir, hr_dir, checkpoint, output_dir, csv_path)
+        print(f"✅ {name} → PSNR: {avg_psnr:.3f}, SSIM: {avg_ssim:.3f}")
