@@ -63,11 +63,11 @@ def calculate_ssim(sr, hr):  # CHANGE
 
 
 # ================= TRAIN =================
-def train(model, train_loader, val_loader, criterion, optimizer, device, epochs,
+def train(model, checkpoints, train_loader, val_loader, criterion, optimizer, device, epochs,
           start_epoch=0, best_loss=float('inf'), best_epoch=0,
           args=None, log_path=None):  # CHANGE
 
-    os.makedirs("checkpoints", exist_ok=True)
+    os.makedirs(f"{checkpoints}", exist_ok=True)
 
     for epoch in range(start_epoch, epochs):
 
@@ -144,14 +144,14 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, epochs,
                 'best_epoch': best_epoch,
                 'args': vars(args)
             }
-            torch.save(current_checkpoint, "checkpoints/current_checkpoint.pth")
+            torch.save(current_checkpoint, f"{checkpoints}/current_checkpoint.pth")
 
         # -------- BEST CHECKPOINT --------
         if avg_val_loss < best_loss:
             best_loss = avg_val_loss
             best_epoch = epoch + 1
 
-            torch.save(model.state_dict(), "checkpoints/best_model.pth")
+            torch.save(model.state_dict(), f"{checkpoints}/best_model.pth")
 
             if args and args.checkpoint_type == "full":
                 best_checkpoint = {
@@ -166,7 +166,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, epochs,
                     'best_epoch': best_epoch,
                     'args': vars(args)
                 }
-                torch.save(best_checkpoint, "checkpoints/best_checkpoint.pth")
+                torch.save(best_checkpoint, f"{checkpoints}/best_checkpoint.pth")
 
             print(f"✅ Saved BEST model at epoch {best_epoch}")
 
@@ -185,19 +185,20 @@ if __name__ == "__main__":
     parser.add_argument("--show_summary", type=int, default=1)
     parser.add_argument("--checkpoint_type", type=str, default="full",
                         choices=["simple", "full"])  # CHANGE
+    parser.add_argument("--checkpoints", type=str, required=True)
 
     args = parser.parse_args()
-
-    os.makedirs("checkpoints", exist_ok=True)
+    checkpoints = args.checkpoints
+    os.makedirs(f"{checkpoints}", exist_ok=True)
 
     # -------- CONFIG --------
-    config_path = "checkpoints/config.json"  # CHANGE
+    config_path = f"{checkpoints}/config.json"  # CHANGE
     if not os.path.exists(config_path):
         with open(config_path, "w") as f:
             json.dump(vars(args), f, indent=4)
 
     # -------- LOG FILE --------
-    log_path = "checkpoints/logs.csv"  # CHANGE
+    log_path = f"{checkpoints}/logs.csv"  # CHANGE
     if not os.path.exists(log_path):
         with open(log_path, "w", newline="") as f:
             writer = csv.writer(f)
@@ -207,7 +208,7 @@ if __name__ == "__main__":
     model = DVMSR().to(device)
 
     pretrained_path = "model_zoo/team07_DVMSR.pth"
-    checkpoint_full = "checkpoints/current_checkpoint.pth"
+    checkpoint_full = f"{checkpoints}/current_checkpoint.pth"
 
     start_epoch = 0
     best_loss = float('inf')
@@ -250,6 +251,7 @@ if __name__ == "__main__":
 
     train(
         model,
+        checkpoints,
         train_loader,
         val_loader,
         criterion,

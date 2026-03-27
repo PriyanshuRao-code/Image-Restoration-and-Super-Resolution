@@ -4,6 +4,7 @@ from PIL import Image
 from torchvision import transforms
 from models.team07_DVMSR import DVMSR
 import utils.utils_image as util 
+import argparse
 
 def generate_images(model_checkpoint_path, lr_image_path, hr_image_path, save_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,14 +47,21 @@ def generate_images(model_checkpoint_path, lr_image_path, hr_image_path, save_di
 
 
 if __name__ == "__main__":
-    lr_image_path = "lol_dataset/eval15/low/1.png"
-    hr_image_path = "lol_dataset/eval15/high/1.png"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--lr_image_path", type=str)
+    parser.add_argument("--hr_image_path", type=str)
+    parser.add_argument("--model_checkpoint_path", type=str)
+    parser.add_argument("--save_dir", type=str)
+    args = parser.parse_args()
+    
+    lr_image_path = args.lr_image_path
+    hr_image_path = args.hr_image_path
     # model_checkpoint_path = "model_zoo/team07_DVMSR.pth"  # For student model 
-    model_checkpoint_path = "checkpoints/best_model.pth"  # For student model 
+    model_checkpoint_path = args.model_checkpoint_path  # For student model 
     # model_checkpoint_path = "checkpoints/best_model.pth"  # For full model
     # model_checkpoint_path = "checkpoints_distilled/student_best.pth"  # For student model 
     # save_dir = "generated_images" # For full model
-    save_dir = "generated_images_lol/2" # For student model
+    save_dir = args.save_dir # For student model
     
     lr_image_pth, hr_image_pth, sr_image_pth = generate_images(model_checkpoint_path, lr_image_path, hr_image_path, save_dir)
     print(f"Generated Images: \nLR: {lr_image_pth} \nHR: {hr_image_pth} \nSR: {sr_image_pth}")

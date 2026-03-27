@@ -5,7 +5,7 @@ from tqdm import tqdm
 import argparse
 from sklearn.model_selection import train_test_split
 
-def generate_LR_images(hr_dir, output_dir, scale=4, val_split=0.2):
+def generate_LR_images(hr_train_dir, hr_valid_dir, output_dir, scale=4):
     # hr_images = [os.path.join(hr_dir, img) for img in os.listdir(hr_dir)
     #              if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
     
@@ -13,9 +13,10 @@ def generate_LR_images(hr_dir, output_dir, scale=4, val_split=0.2):
     #     print("No images found in:", hr_dir)
     #     return
     
-    # train_imgs, val_imgs = train_test_split(hr_images, test_size=val_split, random_state=42)
-    train_dir = os.path.join(hr_dir, "train")
-    valid_dir = os.path.join(hr_dir, "valid")
+    # train_dir = os.path.join(hr_dir, "train")
+    # valid_dir = os.path.join(hr_dir, "valid")
+    train_dir = hr_train_dir
+    valid_dir = hr_valid_dir
 
     train_imgs = [os.path.join(train_dir, img) for img in os.listdir(train_dir)
                   if img.lower().endswith(('.png', '.jpg', '.jpeg'))]  #CHANGE
@@ -43,7 +44,7 @@ def generate_LR_images(hr_dir, output_dir, scale=4, val_split=0.2):
             hr_img = Image.open(img_path).convert("RGB")
             w, h = hr_img.size
             lr_img = hr_img.resize((w // scale, h // scale), Image.BICUBIC)
-            hr_img.save(os.path.join(output_dir, f"{mode}/HR/{img_name}"))
+            # hr_img.save(os.path.join(output_dir, f"{mode}/HR/{img_name}"))
             lr_img.save(os.path.join(output_dir, f"{mode}/LR/{img_name}"))
 
     process_images(train_imgs, "train")
@@ -51,10 +52,10 @@ def generate_LR_images(hr_dir, output_dir, scale=4, val_split=0.2):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate LR images and split dataset.")
-    parser.add_argument("--hr_dir", type=str, required=True, help="Path to HR images folder.")
+    parser.add_argument("--hr_train_dir", type=str, required=True, help="Path to HR train images folder.")
+    parser.add_argument("--hr_valid_dir", type=str, required=True, help="Path to HR valid images folder.")
     parser.add_argument("--output_dir", type=str, default="data", help="Output dataset folder.")
     parser.add_argument("--scale", type=int, default=4, help="Downscaling factor.")
-    parser.add_argument("--val_split", type=float, default=0.2, help="Validation split ratio.")
     args = parser.parse_args()
 
-    generate_LR_images(args.hr_dir, args.output_dir, args.scale, args.val_split)
+    generate_LR_images(args.hr_train_dir, args.hr_valid_dir, args.output_dir, args.scale)
