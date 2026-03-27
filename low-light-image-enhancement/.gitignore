@@ -4,4 +4,8 @@ models/__pycache__/
 utils/__pycache__/
 data
 Dataset
-checkpoints
+checkpoints*
+noisy_images
+output_results
+results
+*.csv
