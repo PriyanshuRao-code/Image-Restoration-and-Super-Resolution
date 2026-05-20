@@ -1,0 +1,24 @@
+
+🔷 Evaluating baseline
+⚙️ FLOPs: 1.179 GFLOPs | Params: 0.288M
+✅ baseline → PSNR: 17.684, SSIM: 0.8137
+
+🔷 Evaluating gamma
+⚙️ FLOPs: 1.179 GFLOPs | Params: 0.288M
+✅ gamma → PSNR: 17.927, SSIM: 0.8314
+
+🔷 Evaluating perceptual
+⚙️ FLOPs: 1.179 GFLOPs | Params: 0.288M
+✅ perceptual → PSNR: 18.136, SSIM: 0.8476
+
+🔷 Evaluating full
+⚙️ FLOPs: 1.224 GFLOPs | Params: 0.299M
+✅ full → PSNR: 17.799, SSIM: 0.8225
+
+🔷 Evaluating illum
+⚙️ FLOPs: 1.224 GFLOPs | Params: 0.299M
+✅ illum → PSNR: 17.962, SSIM: 0.8428
+
+🔷 Evaluating gamma_perceptual
+⚙️ FLOPs: 1.179 GFLOPs | Params: 0.288M
+✅ gamma_perceptual → PSNR: 17.900, SSIM: 0.8305
