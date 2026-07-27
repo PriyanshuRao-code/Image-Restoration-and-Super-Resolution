@@ -1,103 +1,131 @@
-# Credits
-- Priyanshu Rao (https://github.com/PriyanshuRao-code)
-- Mohit Raj S (https://github.com/MohitRajSS)
-- Mohit Bhagoriya (https://github.com/MohitBhagoriya)
+# Low-Light Image Super-Resolution (DVMSR-based)
 
-# Dataset
-We have taken the data from https://nihcc.app.box.com/v/ChestXray-NIHCC which is of Chest Xray
-
-We have shown just a single image for demostrating purpose in DVMSR folder and the statistics are there in .json files
-
-# Script Usage Guide
+An efficient super-resolution pipeline adapted from the **NTIRE Efficient SR
+Challenge DVMSR baseline** and re-purposed for **low-light image
+enhancement + 4× super-resolution**. The pipeline covers dataset
+preparation, augmentation, training multiple low-light-aware model
+variants, evaluation, knowledge distillation, and noise-robustness testing.
 
 ---
 
-# Lite-SRGAN
+## File Descriptions
 
-To run Lite-SRGAN, simply open and execute **SRGAN.ipynb** in Google Colab.
+### Data Preparation
+- **`dataset.py`** — Downloads the LOL low-light dataset via `kagglehub`.
+- **`generate_LR_images.py`** — Takes HR train/valid folders and bicubic-downsamples them (default scale ×4) to create paired LR images.
+- **`augmentation.py`** — Expands the LR-HR training pairs with horizontal/vertical flips and 90°/180°/270° rotations, writing the augmented set to `Dataset_aug/`.
 
-All required files are already linked through the notebook, as they are fetched directly from the GitHub repository.
-We have built upon GitHub repository https://github.com/hosamsherif/LiteSRGAN-and-LiteUNet.git
+### Training
+- **`train.py`** — Full fine-tuning of the base DVMSR architecture on paired LR/HR data, with checkpoint resuming and logging.
+- **`train_new.py`** — Fine-tunes the DVMSR backbone (with the output layers unfrozen) into six low-light-aware variants: `baseline`, `gamma`, `illum`, `perceptual`, `full`, and `gamma_perceptual`. Trains on the augmented dataset with random patch sampling, gamma-correction preprocessing, and an optional VGG perceptual loss. Saves best-by-loss / best-by-PSNR / best-by-SSIM checkpoints per variant under `experiments/<model_type>/Checkpoint/checkpoints/`.
+- **`train_student.py`** — Knowledge distillation: freezes a trained teacher DVMSR model and trains a smaller student model (`depths=[2,2]`) to match both ground truth and teacher output, for a lighter-weight deployable model.
 
-The files needed for setting up the Google Colab are 
+### Inference & Evaluation
+- **`inference_new.py`** — Runs every trained model variant over the validation set, computes PSNR/SSIM, and saves SR outputs plus a per-model `metrics.csv` under `inference_models/`.
+- **`image_gen.py`** — Generates and saves an LR/HR/SR image triplet for a single example, useful for quick visual checks (output saved to `generated_images_lol/`).
+- **`generate_test.py`** — Evaluates a trained checkpoint end-to-end, including FLOPs/parameter count reporting.
 
 ---
 
-# DVMSR
-We have built upon https://github.com/nathan66666/DVMSR.git
-## 1. Generate LR–HR Pairs
+## Setup
+
 ```bash
-python generate_LR_images.py --hr_dir "original_images"
-```
-This script:
-- Reads all **HR images** from the given folder
-- Generates corresponding **LR images**
-- Splits the dataset into **train** and **valid** folders
-- Produces the following structure:
-
-```
-data/
- ├── train/
- │    ├── HR/
- │    └── LR/
- └── valid/
-      ├── HR/
-      └── LR/
+pip install -r requirements.txt
 ```
 
 ---
 
-## 2. Run Evaluation (Generate Metrics + Logs)
+## Usage
+
+### 1. Download the dataset
 ```bash
-python generate_test.py
-```
-This produces:
-- `dvmsr_results.json`
-- `dvmsr_student_results.json`
-- Log file
-
-Switch between **full model** and **student model**:
-```python
-# model = DVMSR()                 # Full model
-model = DVMSR(depths=[2,2])       # Student model
+python dataset.py
 ```
 
----
-
-## 3. Generate SR Image from LR Input
+### 2. Generate LR images from HR
 ```bash
-python image_gen.py
+python generate_LR_images.py \
+    --hr_train_dir <path_to_hr_train> \
+    --hr_valid_dir <path_to_hr_valid> \
+    --output_dir data \
+    --scale 4
 ```
-Use this to obtain **super-resolved images** for any given LR input.
 
----
+### 3. Augment the training set
+```bash
+python augmentation.py
+```
 
-## 4. Train Student Model (Knowledge Distillation)
+### 4. Train model variants
+```bash
+python train_new.py \
+    --train_dir Dataset_aug/train \
+    --val_dir Dataset_aug/valid \
+    --model_type all
+```
+(Use `--model_type <baseline|gamma|illum|perceptual|full|gamma_perceptual>` to train a single variant.)
+
+### 5. Evaluate all trained variants
+```bash
+python inference_new.py
+```
+
+### 6. Generate a single LR/HR/SR sample
+```bash
+python image_gen.py \
+    --lr_image_path <path> \
+    --hr_image_path <path> \
+    --model_checkpoint_path <path> \
+    --save_dir generated_images_lol
+```
+
+### 7. (Optional) Distill a smaller student model
 ```bash
 python train_student.py
 ```
-Teacher model: **4 RSSBs**
-Student model: **2 RSSBs**
 
-Outputs best checkpoint:
-```
-checkpoints_distilled/student_best.pth
+### End-to-end pipeline
+```bash
+bash pipeline.sh
 ```
 
 ---
 
-## 5. Train Full Model
-```bash
-python train.py
-```
-This:
-- Loads pretrained model
-- Freezes first **10 layers**
-- Fine-tunes remaining layers on **X-ray dataset**
+## Model Variants
 
-Outputs:
-```
-checkpoints/best_model.pth
+| Variant | Description |
+|---|---|
+| `baseline` | Fine-tuned DVMSR without additional low-light handling |
+| `gamma` | Applies gamma correction to the LR input before the forward pass |
+| `illum` | Incorporates illumination-aware processing |
+| `perceptual` | Adds a VGG-based perceptual loss during training |
+| `full` | Combines illumination handling and perceptual loss |
+| `gamma_perceptual` | Combines gamma correction and perceptual loss |
 
-```
+---
 
+## From inference_models/
+
+Best PSNR (overall)	perceptual → 18.136 dB
+Best SSIM (overall)	perceptual → 0.8476
+
+---
+
+# Summary 
+
+Developed a Low-Light Super Resolution (LLSR) pipeline using a pretrained DVMSR model with fine-tuning and modular enhancements.
+
+Performed extensive ablation studies across multiple configurations including baseline, gamma correction, illumination module, perceptual loss, and hybrid combinations.
+
+Achieved best performance using perceptual loss with:
+
+PSNR improvement from 17.68 → 18.13 dB
+SSIM improvement from 0.81 → 0.84
+
+Demonstrated that perceptual feature-based optimization improves structural similarity and visual fidelity without increasing inference-time computational cost.
+
+Showed that simple preprocessing (gamma correction) yields measurable gains with zero additional parameters or FLOPs, highlighting an efficient performance–complexity tradeoff.
+
+Identified that combining illumination and perceptual modules introduces optimization conflicts under limited data conditions, leading to degraded performance.
+
+Proposed a hybrid gamma + perceptual pipeline achieving near-optimal performance (18.09 dB PSNR, 0.84 SSIM) without any increase in model size or inference cost.
